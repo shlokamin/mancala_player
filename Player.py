@@ -14,7 +14,7 @@ from MancalaBoard import *
 
 # a constant
 INFINITY = 1.0e400
-PLY = 4
+PLY = 5
 
 class Player:
     """ A basic AI (or human) player """
@@ -110,33 +110,41 @@ class Player:
     # to improve on this function.
     def score(self, board):
         """ Returns the score for this player given the state of the board """
-        if board.hasWon(self.num):
-            return 100.0
-        elif board.hasWon(self.opp):
-            return 0.0
-        else:
-            toMancalaScore = 0
-            toBlankSpaceScore = 0
-            if self.num == 1:
-                cups = board.getPlayersCups(1)
-                oppCups = board.getPlayersCups(2)
-            else:
-                cups = board.getPlayersCups(2)
-                oppCups = board.getPlayersCups(1)
-                
-            ## Checks for playAgain moves
-            for i in range(len(cups)):
-                if 6-i == cups[i]:
-                    toMancalaScore = 50
-            ## Checks for blank space move
-            for i in range(len(cups)):
-                if cups[i]+i < len(cups):
-                    if cups[i+cups[i]] == 0:
-                        toBlankSpacecore = max(toBlankSpaceScore,oppCups[i+cups[i]])
-            toBlankSpaceScore = (toBlankSpaceScore/48)*50
-                        
-            return toBlankSpaceScore + toMancalaScore  
+        numInMancala = [0,0]
+        numOnSide = [0,0] 
+        numBlankSpace = [0,0] 
+        numPlayAgain = [0,0]
         
+        if self.num == 1:
+            cups = board.getPlayersCups(1)
+            oppCups = board.getPlayersCups(2)
+        else:
+            cups = board.getPlayersCups(2)
+            oppCups = board.getPlayersCups(1)
+
+        
+        ## Count for number of marbles in mancala
+        numInMancala[0] = board.scoreCups[self.num-1]
+        numInMancala[1] = board.scoreCups[1-(self.num+1)]
+        ## Checks for playAgain moves
+        for i in range(len(cups)):
+            ## Checks for playAgain moves
+            if 6-i == cups[i]:
+                numInMancala[0] += 1
+            if 6-i == oppCups[i]:
+                numInMancala[1] -= 1
+            ## Checks for blank spaces
+            if cups[i] == 0:
+                numBlankSpace[0] += 1
+            if oppCups[i] == 0:
+                numBlankSpace[1] -= 1
+            ## Count for number of marbles on side
+            numOnSide[0] += cups[i]
+            numOnSide[1] -= oppCups[i]
+            
+                    
+        return numInMancala[0] + numInMancala[1] + numOnSide[0] + numOnSide[1]
+    
 
     # You should not modify anything before this point.
     # The code you will add to this file appears below this line.
@@ -154,6 +162,7 @@ class Player:
     def alphaBetaMove(self, board, ply):
         score = -INFINITY
         move = board.legalMoves(self)[0]
+        
 
         debug = 0
         for m in board.legalMoves(self):
@@ -164,24 +173,21 @@ class Player:
             if temp_score > score:
                 score = temp_score
                 move = m
-            print nb
-            print temp_score
         return score, move
     
     def max_value(self,nb,alpha,beta,ply,s,debug):
+        opp = Player(self.opp, self.type, self.ply)
         if ply == 0:
             return self.score(nb)
-        if nb.gameOver():
-            return -1
+        if nb.hasWon(opp.num):
+            return -48
+        if nb.hasWon(self.num):
+            return 48
         v = -INFINITY
         for m in nb.legalMoves(self):
             nbChild = deepcopy(nb)
             nbChild.makeMove(self,m)
             s = self.score(nbChild)
-            if debug == 1:
-                print "MAX"
-                print nbChild
-                print str(["SCORE: ", str(s)])
             v = max(v,self.min_value(nbChild,alpha,beta,ply-1,s,debug))
             if v >= beta:
                 return v
@@ -189,19 +195,18 @@ class Player:
         return v        
 
     def min_value(self,nb,alpha,beta,ply,s,debug):
+        opp = Player(self.opp, self.type, self.ply)
         if ply == 0:
             return self.score(nb)
-        if nb.gameOver():
-            return -1
+        if nb.hasWon(opp.num):
+            return -48
+        if nb.hasWon(self.num):
+            return 48
         v = INFINITY
         for m in nb.legalMoves(self):
             nbChild = deepcopy(nb)
             nbChild.makeMove(self,m)        
             s = self.score(nbChild)
-            if debug == 1:
-                print "MIN"
-                print nbChild
-                print str(["SCORE: ", str(s)])
             v = min(v,self.max_value(nbChild,alpha,beta,ply-1,s,debug))
             if v <= alpha:
                 return v
