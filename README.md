@@ -1,2 +1,2 @@
 # mancala
-AI assignment 2
+Mancala board and player classes
